@@ -1,10 +1,12 @@
 const html = require('choo/html')
 const devtools = require('choo-devtools')
 const choo = require('choo')
+const css = require('sheetify')
 const ethers = require('ethers')
-const QRCode = require('qrcode')
 
 const preview = require('./qr-preview')
+
+const qrView = require('./screens/get')
 
 require('dotenv').config()
 
@@ -17,26 +19,87 @@ app.use(walletStore)
 app.use(balanceStore)
 app.use(txStore)
 app.route('/', mainView)
+app.route('/get', qrView)
 app.mount('body')
 
 function mainView (state, emit) {
+
+  const styles = css`
+
+    body {
+      margin: 0;
+      background: #2A333E;
+      height: 100vh;
+      color: #A7E4AE;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    p, h1, h2, h3, h4, a {
+      font-family: 'VT323';
+      font-weight: normal;
+    }
+
+    .wallet-status {
+      margin-top: 40px;
+      text-align: center;
+    }
+
+    .wallet-status h1 {
+      font-size: 4rem;
+    }
+
+    .vip-status {
+      margin-top: -70px;
+      font-size: 2rem;
+    }
+
+    .actions {
+      display: flex;
+      flex-direction: column;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .actions a {
+      font-size: 3.5rem;
+      color: #A7E4AE;
+      padding: 20px;
+      text-decoration: none;
+    }
+  `
+
   return html`
-    <body>
-      <h1>Money: ${state.wallet.balance}</h1>
-      <p>Private key: ${state.wallet.signingKey.privateKey}</p>
-      <p>Address: ${state.wallet.signingKey.address}</p>
-      <img src=${state.wallet.qr} />
-      <button onclick=${sendEth}>Return 0.01 ETH</button>
-      <button onclick=${scan}>Scan QR</button>
-      ${preview.render()}
+    <body class=${styles}>
+      <div class="wallet-status">
+        <h1>៛${state.wallet.balance}</h1>
+        <p class="vip-status">VIP=FALSE</p>
+      </div>
+      <div class="actions">
+        <a href="/get">GET</a>
+        <a href="/send">SEND</a>
+        <a href="/gamble">GAMBLE</a>
+        <a href="/vip">VIP_ZONE</a>
+      </div>
+      <link href='//fonts.googleapis.com/css?family=VT323' rel='stylesheet' type='text/css'>
     </body>
   `
+
+
+  // <p>Private key: ${state.wallet.signingKey.privateKey}</p>
+  // <p>Address: ${state.wallet.signingKey.address}</p>
+  //
+  // <button onclick=${sendEth}>Return 0.01 ETH</button>
+  //     <button onclick=${scan}>Scan QR</button>
+  //     ${preview.render()}
+
   function sendEth () {
     emit('sendEth', '0.01')
   }
 
   function scan () {
-    console.log('scaning')
     preview.beginScan(res => {
       console.log(res)
       if (res.indexOf('ethereum:') !== -1) {
@@ -53,9 +116,6 @@ function providerStore (state, emitter) {
 
 function walletStore (state, emitter) {
   state.wallet = getWallet(state.provider)
-  QRCode.toDataURL(state.wallet.signingKey.address, (err, url) => {
-    state.wallet.qr = url
-  })
 }
 
 function balanceStore (state, emitter) {
